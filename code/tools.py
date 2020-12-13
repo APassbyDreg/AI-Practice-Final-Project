@@ -56,9 +56,9 @@ def get_random_mission_xml_path(agent_host):
 def reset_world(agent_host, 
                 mission_xml_path,
                 my_clients,
-                my_mission_record,
                 agentID,
                 expID):
+    my_mission_record = MalmoPython.MissionRecordSpec()
     with open(mission_xml_path, 'r') as f:
         print("Loading mission from %s" % mission_xml_path)
         mission_xml = f.read()
@@ -113,4 +113,4 @@ def step(agent_host, cmd):
     
     done = not world_state.is_mission_running
     reward = world_state.rewards[-1].getValue()
-
+    return done, reward, world_state

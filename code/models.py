@@ -33,7 +33,6 @@ class Estimator(nn.Module):
         assert(x.shape[2] == self.input_size[2])
         assert(x.shape[3] == self.input_size[3])
         # compute
-        x = self.expand(x)
         x = self.conv1(x)
         x = self.conv2(x)
         x = self.conv3(x)
@@ -49,6 +48,7 @@ class DQN:
         DQN class containing model and training methods
     """
     def __call__(self, x):
+        self.model_pred.eval()
         return self.model_pred(x)
 
     def __init__(self, input_size=[None, 4, 9, 9], output_size=4, lr=1e-3, update_rate=5, gamma=0.8, batch_size=64) -> None:
@@ -56,17 +56,15 @@ class DQN:
         self.model_train = Estimator(input_size, output_size)
         self.model_pred = Estimator(input_size, output_size)
         self.loss = nn.MSELoss()
-        self.optimizer = optim.SGD(self.parameters(), lr=lr)
+        self.optimizer = optim.SGD(self.model_train.parameters(), lr=lr)
         self.n_train = 0
         self.update_rate = update_rate
         self.gamma = 0.8
         self.batch_size = batch_size
 
     def train_once(self, memory):
-        # train once
         self.model_train.train(True)
         self.optimizer.zero_grad()
-        
         # sample from memory
         samples = random.sample(memory, self.batch_size)
         states_batch, action_batch, reward_batch, next_states_batch, _ = map(np.array, zip(*samples))
@@ -90,5 +88,8 @@ class DQN:
 if __name__ == "__main__":
     est = Estimator()
     print(est)
-    x = torch.rand(4, 1, 9, 9)
+    x = torch.rand(2, 4, 9, 9)
     print(est(x))
+
+    dqn = DQN()
+    print(dqn(x))

@@ -125,7 +125,7 @@ for i in range(epochs):
     loss = 0
     for _ in tqdm(range(n_batch)):
         loss += dqn.train_once(memory)
-    print("loss after epoch %d is %f"%(i+1, loss/n_batch))
+    print("loss after epoch {} is {}".format(i+1, loss/n_batch))
 #################################################
 
 

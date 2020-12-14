@@ -39,11 +39,11 @@ def grid_process(world_state):
 
 def get_epsilon(curr_step, total_step, start_eps=1, end_eps=0.1, decay_start_step=0):
     assert(decay_start_step < total_step)
-    pos = max(0, curr_step-decay_start_step)
-    return end_eps + (start_eps - end_eps) * (pos) / (total_step - decay_start_step)
+    pos = max(0, curr_step - decay_start_step)
+    return start_eps + (end_eps - start_eps) * (pos) / (total_step - decay_start_step)
 
 
-def epsilon_greedy(estimator, obs, eps, num_actions):
+def epsilon_greedy(estimator, obs, eps, num_actions=4):
     action_probs = np.ones(num_actions, dtype=float) * eps / num_actions
     q_values = estimator(np.expand_dims(obs, 0))
     best_action = np.argmax(q_values.detach().numpy())
@@ -93,7 +93,7 @@ def reset_world(agent_host,
     agent_host.sendCommand("look -1")
     while world_state.is_mission_running and all(e.text == '{}' for e in world_state.observations):
         world_state = agent_host.peekWorldState()
-
+    print("")
     return world_state
 
 

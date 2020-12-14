@@ -66,7 +66,7 @@ memory = []
 mem_size = 2048
 expID = 0
 epochs = 400
-start_eps = 1
+start_eps = 0.9
 end_eps = 0.1
 #################################################
 
@@ -84,7 +84,7 @@ while len(memory) < mem_size:
         world_state = reset_world(agent_host, mission_xml_path, my_clients, agentID, expID)
         curr_state = get_curr_state(world_state)
         print(f"curr records in memory {len(memory)}")
-    act = epsilon_greedy(dqn, curr_state, start_eps, len(action_list))
+    act = epsilon_greedy(dqn, curr_state, eps=1)
     done, reward, world_state = step(agent_host, action_list[act])
     next_state = get_next_state(world_state, curr_state)
     memory.append(Transition(curr_state, act, reward, next_state, done))
@@ -109,15 +109,18 @@ for i in range(epochs):
     done = False
     curr_eps = get_epsilon(i, epochs)
     curr_reward = 0
+    step_cnt = 0
     while not done:
         # step
-        act = epsilon_greedy(dqn, curr_state, curr_eps, len(action_list))
+        step_cnt += 1
+        act = epsilon_greedy(dqn, curr_state, curr_eps)
         done, reward, world_state = step(agent_host, action_list[act])
         next_state = get_next_state(world_state, curr_state)
         memory.pop(0)
         memory.append(Transition(curr_state, act, reward, next_state, done))
         curr_state = next_state
         curr_reward += reward
+        print(f"- step {step_cnt} of epoch {i+1}: action=\"{action_list[act]}\", reward={reward}")
     print(f"total reward @ epoch{i+1} is {curr_reward}")
     # train
     loss = 0

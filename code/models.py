@@ -27,6 +27,7 @@ class Estimator(nn.Module):
         self.fc3 = LinearLayer(128, output_size, activation_type="none", norm_type="none")
 
     def forward(self, x: torch.Tensor):
+        x = torch.tensor(x, dtype=torch.float32)
         # check input
         assert(len(x.shape) == 4)
         assert(x.shape[1] == self.input_size[1])
@@ -51,7 +52,7 @@ class DQN:
         self.model_pred.eval()
         return self.model_pred(x)
 
-    def __init__(self, input_size=[None, 4, 9, 9], output_size=4, lr=1e-3, update_rate=5, gamma=0.8, batch_size=64) -> None:
+    def __init__(self, input_size=[None, 4, 9, 9], output_size=4, lr=1e-3, update_rate=5, gamma=0.8, batch_size=256) -> None:
         super().__init__()
         self.model_train = Estimator(input_size, output_size)
         self.model_pred = Estimator(input_size, output_size)
@@ -69,10 +70,12 @@ class DQN:
         samples = random.sample(memory, self.batch_size)
         states_batch, action_batch, reward_batch, next_states_batch, _ = map(np.array, zip(*samples))
         # get target & pred
-        q_values_next_target = self.model_pred(next_states_batch)
-        targets_batch = reward_batch + self.gamma * np.maximum(q_values_next_target, axis=0)
+        q_values_next_target = self.model_pred(next_states_batch).detach().numpy()
+        targets_batch = reward_batch + self.gamma * q_values_next_target.max(axis=1)
+        targets_batch = torch.FloatTensor(targets_batch.reshape(-1, 1))
         q_values_next_pred = self.model_train(states_batch)
-        pred_batch = q_values_next_pred.gather(1, action_batch)
+        action_batch = torch.tensor(action_batch.reshape(-1, 1), dtype=torch.int64)
+        pred_batch = q_values_next_pred.gather(0, action_batch)
         # train model
         l = self.loss(pred_batch, targets_batch)
         l.backward()
@@ -93,3 +96,5 @@ if __name__ == "__main__":
 
     dqn = DQN()
     print(dqn(x))
+
+    print(x.dtype)

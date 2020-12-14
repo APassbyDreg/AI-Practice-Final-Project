@@ -6,7 +6,11 @@ from collections import namedtuple
 import numpy as np
 
 
-MalmoPython = None
+# nonlocal MalmoPython
+try:
+    from malmo import MalmoPython
+except:
+    import MalmoPython
 
 
 Transition = namedtuple("Transition", ["state", "action", "reward", "next_state", "done"])
@@ -29,7 +33,8 @@ def grid_process(world_state):
             grid[i] = block2id[block]
         else:
             grid[i] = -1
-    return np.reshape(np.array(grid), [9, 9])
+    full_grid = np.reshape(np.array(grid), [13, 13])
+    return full_grid[2:-2, 2:-2]
 
 
 def get_epsilon(curr_step, total_step, start_eps=1, end_eps=0.1, decay_start_step=0):
@@ -40,8 +45,8 @@ def get_epsilon(curr_step, total_step, start_eps=1, end_eps=0.1, decay_start_ste
 
 def epsilon_greedy(estimator, obs, eps, num_actions):
     action_probs = np.ones(num_actions, dtype=float) * eps / num_actions
-    q_values = estimator.predict(np.expand_dims(obs, 0))
-    best_action = np.argmax(q_values)
+    q_values = estimator(np.expand_dims(obs, 0))
+    best_action = np.argmax(q_values.detach().numpy())
     action_probs[best_action] += (1.0 - eps)
     action = np.random.choice(np.arange(num_actions), p=action_probs)
     return action
@@ -51,6 +56,7 @@ def get_random_mission_xml_path(agent_host):
     mission_file = agent_host.getStringArgument('mission_file')
     mazeNum = np.random.randint(0, 4)
     mission_file = os.path.join(mission_file,"Maze%s.xml"%mazeNum)
+    return mission_file
 
 
 def reset_world(agent_host, 
@@ -112,5 +118,8 @@ def step(agent_host, cmd):
         world_state = agent_host.peekWorldState()
     
     done = not world_state.is_mission_running
-    reward = world_state.rewards[-1].getValue()
+    try:
+        reward = world_state.rewards[-1].getValue()
+    except:
+        reward = -10
     return done, reward, world_state

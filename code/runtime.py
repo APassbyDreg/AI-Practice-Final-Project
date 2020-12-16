@@ -82,6 +82,7 @@ mem_size = 2048
 expID = 0
 start_eps = 0.9
 end_eps = 0.1
+mission_change_rate = 50
 #################################################
 
 
@@ -111,7 +112,6 @@ logger.info("Finished populating memory")
 epochs = 1000
 end_decay_epoch = 400
 n_batch = 16
-mission_change_rate = 50
 mission_xml_path = os.path.join(agent_host.getStringArgument('mission_file'), "Maze0.xml")
 world_state = reset_world(agent_host, mission_xml_path, my_clients, agentID, expID, logger)
 done = False

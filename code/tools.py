@@ -1,6 +1,7 @@
 import json
 import time
 import os
+import logging
 from collections import namedtuple
 
 import numpy as np
@@ -37,10 +38,11 @@ def grid_process(world_state):
     return full_grid[2:-2, 2:-2]
 
 
-def get_epsilon(curr_step, total_step, start_eps=1, end_eps=0.1, decay_start_step=0):
-    assert(decay_start_step < total_step)
+def get_epsilon(curr_step, decay_end_step, decay_start_step=0, start_eps=1, end_eps=0.1):
+    assert(decay_start_step < decay_end_step)
+    curr_step = min(curr_step, decay_end_step)
     pos = max(0, curr_step - decay_start_step)
-    return start_eps + (end_eps - start_eps) * (pos) / (total_step - decay_start_step)
+    return start_eps + (end_eps - start_eps) * (pos) / (decay_end_step - decay_start_step)
 
 
 def epsilon_greedy(estimator, obs, eps, num_actions=4):
@@ -63,37 +65,39 @@ def reset_world(agent_host,
                 mission_xml_path,
                 my_clients,
                 agentID,
-                expID):
-    my_mission_record = MalmoPython.MissionRecordSpec()
-    with open(mission_xml_path, 'r') as f:
-        print("Loading mission from %s" % mission_xml_path)
-        mission_xml = f.read()
-        my_mission = MalmoPython.MissionSpec(mission_xml, True)
-    my_mission.removeAllCommandHandlers()
-    my_mission.allowAllDiscreteMovementCommands()
-    my_mission.setViewpoint(2)
+                expID,
+                logger):
+    reseted = False
+    while not reseted:
+        my_mission_record = MalmoPython.MissionRecordSpec()
+        with open(mission_xml_path, 'r') as f:
+            logger.info("Loading mission from %s" % mission_xml_path)
+            mission_xml = f.read()
+            my_mission = MalmoPython.MissionSpec(mission_xml, True)
+        my_mission.removeAllCommandHandlers()
+        my_mission.allowAllDiscreteMovementCommands()
+        my_mission.setViewpoint(2)
 
-    for retry in range(MAX_RETRIES):
-        try:
-            agent_host.startMission(my_mission, my_clients, my_mission_record, agentID, "%s" % (expID))
-            break
-        except RuntimeError as e:
-            if retry == MAX_RETRIES - 1:
-                print("Error starting mission:", e)
-                exit(1)
-            else:
-                time.sleep(2.5)
+        for retry in range(MAX_RETRIES):
+            try:
+                agent_host.startMission(my_mission, my_clients, my_mission_record, agentID, "%s" % (expID))
+                break
+            except RuntimeError as e:
+                if retry == MAX_RETRIES - 1:
+                    logger.info(f"Error starting mission: {e}")
+                    exit(1)
+                else:
+                    time.sleep(2.5)
 
-    world_state = agent_host.getWorldState()
-    while not world_state.has_mission_begun:
-        print(".", end="")
-        time.sleep(0.1)
         world_state = agent_host.getWorldState()
-    agent_host.sendCommand("look -1")
-    agent_host.sendCommand("look -1")
-    while world_state.is_mission_running and all(e.text == '{}' for e in world_state.observations):
-        world_state = agent_host.peekWorldState()
-    print("")
+        while not world_state.has_mission_begun:
+            time.sleep(0.1)
+            world_state = agent_host.getWorldState()
+        agent_host.sendCommand("look -1")
+        agent_host.sendCommand("look -1")
+        while world_state.is_mission_running and all(e.text == '{}' for e in world_state.observations):
+            world_state = agent_host.peekWorldState()
+        reseted = len(world_state.observations) > 0
     return world_state
 
 

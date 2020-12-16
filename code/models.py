@@ -16,9 +16,9 @@ class Estimator(nn.Module):
     def __init__(self, input_size=[None, 4, 9, 9], output_size=4):
         super(Estimator, self).__init__()
         self.input_size = input_size
-        self.conv1 = Conv2DLayer(4, 8, 5, pad=1)    # shape = (8, 7, 7)
-        self.conv2 = Conv2DLayer(8, 16, 5, pad=1)   # shape = (16, 5, 5)
-        self.conv3 = Conv2DLayer(16, 32, 3)         # shape = (32, 3, 3)
+        self.conv1 = Conv2DLayer(4, 8, 3)       # shape = (8, 7, 7)
+        self.conv2 = Conv2DLayer(8, 16, 3)      # shape = (16, 5, 5)
+        self.conv3 = Conv2DLayer(16, 32, 3)     # shape = (32, 3, 3)
         self.flatten = nn.Flatten()
         w1, w2 = input_size[-1], input_size[-2]
         n_feat = (w1 - 6) * (w2 - 6) * 32

@@ -4,7 +4,10 @@ import json
 import random
 import numpy as np
 import os
-
+import sys
+import logging
+from datetime import datetime
+from matplotlib import pyplot as plt
 from tqdm import tqdm
 
 
@@ -24,6 +27,20 @@ try:
     from malmo import MalmoPython
 except:
     import MalmoPython
+
+##################################### set logger
+timestamp = datetime.now().strftime("%Y-%m-%d@%H-%M-%S")
+logger = logging.getLogger('')
+logger.setLevel(logging.DEBUG)
+fh = logging.FileHandler("./logs/{}.log".format(timestamp))
+sh = logging.StreamHandler(sys.stdout)
+formatter = logging.Formatter('[%(asctime)s] %(levelname)s [%(filename)s.%(funcName)s:%(lineno)d] %(message)s', datefmt='%a, %d %b %Y %H:%M:%S')
+fh.setFormatter(formatter)
+sh.setFormatter(formatter)
+logger.addHandler(fh)
+logger.addHandler(sh)
+################################################
+
 ################################## prepare malmo
 agent_host = MalmoPython.AgentHost()
 mission_file = "./mazes"
@@ -64,9 +81,9 @@ dqn = DQN()
 memory = []
 mem_size = 2048
 expID = 0
-epochs = 400
 start_eps = 0.9
 end_eps = 0.1
+mission_change_rate = 50
 #################################################
 
 
@@ -93,14 +110,17 @@ print("Finished populating memory")
 
 
 ######################################## training
+epochs = 4000
+end_decay_epoch = 400
 n_batch = 16
 mission_xml_path = os.path.join(agent_host.getStringArgument('mission_file'), "Maze0.xml")
 world_state = reset_world(agent_host, mission_xml_path, my_clients, agentID, expID)
 done = False
+losses = []
 for i in range(epochs):
     if i % ckpt_save_rate == 0:
         save_ckpt(dqn.model_pred, "ckpt@epoch%d"%(i), ckpt_dir)
-    print("%d-th episode"%(i))
+    logger.info("%d-th episode"%(i))
     if i % mission_change_rate == 0:
         mission_xml_path = get_random_mission_xml_path(agent_host)
     world_state = reset_world(agent_host, mission_xml_path, my_clients, agentID, expID)
@@ -119,14 +139,20 @@ for i in range(epochs):
         memory.append(Transition(curr_state, act, reward, next_state, done))
         curr_state = next_state
         curr_reward += reward
-        print("- step " + str(step_cnt) + " of epoch"+ str(i+1) +": action= "+action_list[act]+" , reward= "+str(reward))
-    print("total reward @ epoch %d is %d"%(i+1, curr_reward))
+        logger.info("- step " + str(step_cnt) + " of epoch"+ str(i+1) +": action= "+action_list[act]+" , reward= "+str(reward))
+    logger.info("total reward @ epoch %d is %d"%(i+1, curr_reward))
     # train
     loss = 0
     for _ in tqdm(range(n_batch)):
         loss += dqn.train_once(memory)
-    print("loss after epoch {} is {}".format(i+1, loss/n_batch))
+    logger.info("loss after epoch {} is {}".format(i+1, loss/n_batch))
+    losses.append(loss / n_batch)
 #################################################
 
 
 save_ckpt(dqn.model_pred, "ckpt@finished", ckpt_dir)
+plt.plot(losses)
+plt.xlabel("epoch")
+plt.ylabel("loss")
+plt.savefig("./logs/loss-{}.png".format(timestamp))
+plt.show()

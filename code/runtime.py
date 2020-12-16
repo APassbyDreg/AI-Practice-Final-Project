@@ -78,11 +78,11 @@ if os.path.exists(ckpt_dir):
 os.makedirs(ckpt_dir)
 dqn = DQN()
 memory = []
-mem_size = 2048
+mem_size = 1024
 expID = 0
 start_eps = 0.9
 end_eps = 0.1
-mission_change_rate = 50
+mission_change_rate = 20
 #################################################
 
 

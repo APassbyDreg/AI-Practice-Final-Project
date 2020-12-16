@@ -15,7 +15,7 @@ except:
 
 
 Transition = namedtuple("Transition", ["state", "action", "reward", "next_state", "done"])
-MAX_RETRIES = 5
+MAX_RETRIES = 100
 
 
 

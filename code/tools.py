@@ -28,7 +28,9 @@ def grid_process(world_state):
                 "fire": 2,
                 "emerald_block": 3,
                 "beacon": 4,
-                "air": 5}
+                "air": 5,
+                "human": 6,
+                "glass": 7}
     for i, block in enumerate(grid):
         if block in block2id.keys():
             grid[i] = block2id[block]

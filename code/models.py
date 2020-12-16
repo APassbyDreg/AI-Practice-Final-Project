@@ -52,7 +52,7 @@ class DQN:
         self.model_pred.eval()
         return self.model_pred(x)
 
-    def __init__(self, input_size=[None, 4, 9, 9], output_size=4, lr=1e-3, update_rate=5, gamma=0.8, batch_size=256) -> None:
+    def __init__(self, input_size=[None, 4, 9, 9], output_size=4, lr=5e-4, update_rate=5, gamma=0.8, batch_size=256) -> None:
         super().__init__()
         self.model_train = Estimator(input_size, output_size)
         self.model_pred = Estimator(input_size, output_size)

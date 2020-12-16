@@ -29,6 +29,8 @@ except:
 
 
 ##################################### set logger
+if not os.path.exists("./logs"):
+    os.makedirs("./logs")
 timestamp = datetime.now().strftime("%Y-%m-%d@%H-%M-%S")
 logger = logging.getLogger('')
 logger.setLevel(logging.DEBUG)

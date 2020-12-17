@@ -142,6 +142,9 @@ for i in range(epochs):
         act = epsilon_greedy(dqn, curr_state, curr_eps)
         done, reward, world_state, pos = step(agent_host, action_list[act])
         next_state = get_next_state(world_state, curr_state)
+        # if stay in same place and not ended, set reward to -10
+        if not done and curr_pos[0] == pos[0] and curr_pos[2] == pos[2]:
+            reward = -10.0
         memory.pop(0)
         memory.append(Transition(curr_state, act, reward, next_state, done))
         curr_state = next_state

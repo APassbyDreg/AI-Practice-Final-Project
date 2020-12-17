@@ -47,10 +47,12 @@ def get_epsilon(curr_step, decay_end_step, decay_start_step=0, start_eps=1, end_
     return start_eps + (end_eps - start_eps) * (pos) / (decay_end_step - decay_start_step)
 
 
-def epsilon_greedy(estimator, obs, eps, num_actions=4):
+def epsilon_greedy(estimator, obs, eps, num_actions=4, logger=None):
     action_probs = np.ones(num_actions, dtype=float) * eps / num_actions
-    q_values = estimator(np.expand_dims(obs, 0))
-    best_action = np.argmax(q_values.detach().numpy())
+    q_values = estimator(np.expand_dims(obs, 0)).detach().numpy()
+    best_action = np.argmax(q_values[0])
+    if logger is not None:
+        logger.info(f"q_values: {q_values}")
     action_probs[best_action] += (1.0 - eps)
     action = np.random.choice(np.arange(num_actions), p=action_probs)
     return action

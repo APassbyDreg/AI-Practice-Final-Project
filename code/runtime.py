@@ -80,11 +80,9 @@ if os.path.exists(ckpt_dir):
 os.makedirs(ckpt_dir)
 dqn = DQN()
 memory = []
-mem_size = 1024
+mem_size = 2048
 expID = 0
-start_eps = 0.9
-end_eps = 0.1
-mission_change_rate = 20
+mission_change_rate = 25
 #################################################
 
 
@@ -95,7 +93,7 @@ curr_state = get_curr_state(world_state)
 done = False
 curr_pos = (None, None, None)
 while len(memory) < mem_size:
-    # change mission xml per 20 times
+    # change mission xml periodically
     if len(memory) % mission_change_rate == 0:
         mission_xml_path = get_random_mission_xml_path(agent_host)
     if done:
@@ -118,8 +116,10 @@ logger.info("Finished populating memory")
 
 ######################################## training
 epochs = 1000
-end_decay_epoch = 400
-n_batch = 16
+start_eps = 0.9
+end_eps = 0.15
+end_decay_epoch = 500
+n_batch = 32
 mission_xml_path = os.path.join(agent_host.getStringArgument('mission_file'), "Maze0.xml")
 world_state = reset_world(agent_host, mission_xml_path, my_clients, agentID, expID, logger)
 done = False

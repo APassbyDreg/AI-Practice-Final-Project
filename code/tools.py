@@ -16,26 +16,26 @@ except:
 
 Transition = namedtuple("Transition", ["state", "action", "reward", "next_state", "done"])
 MAX_RETRIES = 100
-
+BLOCK_2_ID = {"carpet": 0,
+              "sea_lantern": 1,
+              "fire": 2,
+              "emerald_block": 3,
+              "beacon": 4,
+              "human": 5,
+              "glass": 6,
+              "netherrack": 7,
+              "__else": 8}
 
 
 def grid_process(world_state):
     msg = world_state.observations[-1].text
     observations = json.loads(msg)
     grid = observations.get(u'floor10x10', 0)
-    block2id = {"carpet": 0,
-                "sea_lantern": 1,
-                "fire": 2,
-                "emerald_block": 3,
-                "beacon": 4,
-                "air": 5,
-                "human": 6,
-                "glass": 7}
     for i, block in enumerate(grid):
-        if block in block2id.keys():
-            grid[i] = block2id[block]
+        if block in BLOCK_2_ID.keys():
+            grid[i] = BLOCK_2_ID[block]
         else:
-            grid[i] = -1
+            grid[i] = BLOCK_2_ID["__else"]
     full_grid = np.reshape(np.array(grid), [13, 13])
     return full_grid[2:-2, 2:-2]
 
@@ -128,4 +128,7 @@ def step(agent_host, cmd):
         reward = world_state.rewards[-1].getValue()
     except:
         reward = -10
-    return done, reward, world_state
+    msg = world_state.observations[-1].text
+    observations = json.loads(msg)
+    pos = (observations['XPos'], observations['YPos'], observations['ZPos'])
+    return done, reward, world_state, pos

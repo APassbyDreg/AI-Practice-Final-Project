@@ -93,6 +93,7 @@ mission_xml_path = os.path.join(agent_host.getStringArgument('mission_file'), "M
 world_state = reset_world(agent_host, mission_xml_path, my_clients, agentID, expID, logger)
 curr_state = get_curr_state(world_state)
 done = False
+curr_pos = (None, None, None)
 while len(memory) < mem_size:
     # change mission xml per 20 times
     if len(memory) % mission_change_rate == 0:
@@ -102,10 +103,15 @@ while len(memory) < mem_size:
         world_state = reset_world(agent_host, mission_xml_path, my_clients, agentID, expID, logger)
         curr_state = get_curr_state(world_state)
     act = epsilon_greedy(dqn, curr_state, eps=1)
-    done, reward, world_state = step(agent_host, action_list[act])
+    done, reward, world_state, pos = step(agent_host, action_list[act])
+    # if stay in same place and not ended, set reward to -10
+    if not done and curr_pos[0] == pos[0] and curr_pos[2] == pos[2]:
+        reward = -10.0
+    logger.info(f"- action=\"{action_list[act]}\", reward={reward}, pos={pos}")
     next_state = get_next_state(world_state, curr_state)
     memory.append(Transition(curr_state, act, reward, next_state, done))
     curr_state = next_state
+    curr_pos = pos
 logger.info("Finished populating memory")
 #################################################
 
@@ -134,13 +140,13 @@ for i in range(epochs):
         # step
         step_cnt += 1
         act = epsilon_greedy(dqn, curr_state, curr_eps)
-        done, reward, world_state = step(agent_host, action_list[act])
+        done, reward, world_state, pos = step(agent_host, action_list[act])
         next_state = get_next_state(world_state, curr_state)
         memory.pop(0)
         memory.append(Transition(curr_state, act, reward, next_state, done))
         curr_state = next_state
         curr_reward += reward
-        logger.info(f"- step {step_cnt} of epoch {i+1}: action=\"{action_list[act]}\", reward={reward}")
+        logger.info(f"- step {step_cnt} of epoch {i+1}: action=\"{action_list[act]}\", reward={reward}, pos={pos}")
     logger.info(f"total reward @ epoch{i+1} is {curr_reward}")
     # train
     loss = 0

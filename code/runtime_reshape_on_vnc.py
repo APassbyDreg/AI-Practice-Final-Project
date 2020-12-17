@@ -28,18 +28,21 @@ try:
 except:
     import MalmoPython
 
+
+
 ##################################### set logger
-timestamp = datetime.now().strftime("%Y-%m-%d@%H-%M-%S")
-logger = logging.getLogger('')
-logger.setLevel(logging.DEBUG)
-fh = logging.FileHandler("./logs/{}.log".format(timestamp))
-sh = logging.StreamHandler(sys.stdout)
-formatter = logging.Formatter('[%(asctime)s] %(levelname)s [%(filename)s.%(funcName)s:%(lineno)d] %(message)s', datefmt='%a, %d %b %Y %H:%M:%S')
-fh.setFormatter(formatter)
-sh.setFormatter(formatter)
-logger.addHandler(fh)
-logger.addHandler(sh)
+# timestamp = datetime.now().strftime("%Y-%m-%d@%H-%M-%S")
+# logger = logging.getLogger('')
+# logger.setLevel(logging.DEBUG)
+# fh = logging.FileHandler("./logs/{}.log".format(timestamp))
+# sh = logging.StreamHandler(sys.stdout)
+# formatter = logging.Formatter('[%(asctime)s] %(levelname)s [%(filename)s.%(funcName)s:%(lineno)d] %(message)s', datefmt='%a, %d %b %Y %H:%M:%S')
+# fh.setFormatter(formatter)
+# sh.setFormatter(formatter)
+# logger.addHandler(fh)
+# logger.addHandler(sh)
 ################################################
+
 
 ################################## prepare malmo
 agent_host = MalmoPython.AgentHost()
@@ -68,22 +71,20 @@ my_clients.add(MalmoPython.ClientInfo('127.0.0.1', 10000))
 agentID = 0
 ################################################
 
-
 ############################### prepare training
 action_list = ["movenorth 1", "movesouth 1", "movewest 1", "moveeast 1"]
 ckpt_dir = os.path.abspath("./checkpoints")
 ckpt_save_rate = 50
-mission_change_rate = 32
 if os.path.exists(ckpt_dir):
     shutil.rmtree(ckpt_dir)
 os.makedirs(ckpt_dir)
 dqn = DQN()
 memory = []
-mem_size = 2048
+mem_size = 1024
 expID = 0
 start_eps = 0.9
 end_eps = 0.1
-mission_change_rate = 50
+mission_change_rate = 20
 #################################################
 
 
@@ -92,19 +93,25 @@ mission_xml_path = os.path.join(agent_host.getStringArgument('mission_file'), "M
 world_state = reset_world(agent_host, mission_xml_path, my_clients, agentID, expID)
 curr_state = get_curr_state(world_state)
 done = False
+curr_pos = (None, None, None)
 while len(memory) < mem_size:
     # change mission xml per 20 times
     if len(memory) % mission_change_rate == 0:
         mission_xml_path = get_random_mission_xml_path(agent_host)
     if done:
+        print("curr records in memory %d" % (len(memory)))
         world_state = reset_world(agent_host, mission_xml_path, my_clients, agentID, expID)
         curr_state = get_curr_state(world_state)
-        print("curr records in memory %d"%(len(memory)))
     act = epsilon_greedy(dqn, curr_state, eps=1)
-    done, reward, world_state = step(agent_host, action_list[act])
+    done, reward, world_state, pos = step(agent_host, action_list[act])
+    # if stay in same place and not ended, set reward to -10
+    if not done and curr_pos[0] == pos[0] and curr_pos[2] == pos[2]:
+        reward = -10.0
+    print("- action=\"{}\", reward={}, pos={}".format(action_list[act], reward, pos))
     next_state = get_next_state(world_state, curr_state)
     memory.append(Transition(curr_state, act, reward, next_state, done))
     curr_state = next_state
+    curr_pos = pos
 print("Finished populating memory")
 #################################################
 
@@ -120,11 +127,12 @@ losses = []
 for i in range(epochs):
     if i % ckpt_save_rate == 0:
         save_ckpt(dqn.model_pred, "ckpt@epoch%d"%(i), ckpt_dir)
-    logger.info("%d-th episode"%(i))
+    print("%d-th episode"%(i))
     if i % mission_change_rate == 0:
         mission_xml_path = get_random_mission_xml_path(agent_host)
     world_state = reset_world(agent_host, mission_xml_path, my_clients, agentID, expID)
     curr_state = get_curr_state(world_state)
+    curr_pos = (None, None, None)
     done = False
     curr_eps = get_epsilon(i, epochs)
     curr_reward = 0
@@ -135,24 +143,28 @@ for i in range(epochs):
         act = epsilon_greedy(dqn, curr_state, curr_eps)
         done, reward, world_state = step(agent_host, action_list[act])
         next_state = get_next_state(world_state, curr_state)
+        # if stay in same place and not ended, set reward to -10
+        if not done and curr_pos[0] == pos[0] and curr_pos[2] == pos[2]:
+            reward = -10.0
         memory.pop(0)
         memory.append(Transition(curr_state, act, reward, next_state, done))
         curr_state = next_state
+        curr_pos = pos
         curr_reward += reward
-        logger.info("- step " + str(step_cnt) + " of epoch"+ str(i+1) +": action= "+action_list[act]+" , reward= "+str(reward))
-    logger.info("total reward @ epoch %d is %d"%(i+1, curr_reward))
+        print("- step " + str(step_cnt) + " of epoch"+ str(i+1) +": action= "+action_list[act]+" , reward= "+str(reward))
+    print("total reward @ epoch %d is %d"%(i+1, curr_reward))
     # train
     loss = 0
     for _ in tqdm(range(n_batch)):
         loss += dqn.train_once(memory)
-    logger.info("loss after epoch {} is {}".format(i+1, loss/n_batch))
+    print("loss after epoch {} is {}".format(i+1, loss/n_batch))
     losses.append(loss / n_batch)
 #################################################
 
 
 save_ckpt(dqn.model_pred, "ckpt@finished", ckpt_dir)
-plt.plot(losses)
-plt.xlabel("epoch")
-plt.ylabel("loss")
-plt.savefig("./logs/loss-{}.png".format(timestamp))
-plt.show()
+# plt.plot(losses)
+# plt.xlabel("epoch")
+# plt.ylabel("loss")
+# plt.savefig("./logs/loss-{}.png".format(timestamp))
+# plt.show()

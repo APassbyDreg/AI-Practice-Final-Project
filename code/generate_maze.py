@@ -2,7 +2,7 @@
 
 import random
 import argparse
-random.seed()
+random.seed(184211)
 
 class Maze:
     def __init__(self, w, h):

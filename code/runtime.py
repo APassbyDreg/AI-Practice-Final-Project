@@ -132,6 +132,7 @@ for i in range(epochs):
         mission_xml_path = get_random_mission_xml_path(agent_host)
     world_state = reset_world(agent_host, mission_xml_path, my_clients, agentID, expID, logger)
     curr_state = get_curr_state(world_state)
+    curr_pos = (None, None, None)
     done = False
     curr_eps = get_epsilon(i, end_decay_epoch)
     curr_reward = 0
@@ -148,6 +149,7 @@ for i in range(epochs):
         memory.pop(0)
         memory.append(Transition(curr_state, act, reward, next_state, done))
         curr_state = next_state
+        curr_pos = pos
         curr_reward += reward
         logger.info(f"- step {step_cnt} of epoch {i+1}: action=\"{action_list[act]}\", reward={reward}, pos={pos}")
     logger.info(f"total reward @ epoch{i+1} is {curr_reward}")

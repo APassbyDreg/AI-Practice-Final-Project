@@ -13,15 +13,17 @@ class Estimator(nn.Module):
     """
         estimator
     """
-    def __init__(self, input_size=[None, 4, 9, 9], output_size=4):
+    def __init__(self, input_size, output_size=4):
         super(Estimator, self).__init__()
         self.input_size = input_size
-        self.conv1 = Conv2DLayer(4, 8, 3)       # shape = (8, 7, 7)
-        self.conv2 = Conv2DLayer(8, 16, 3)      # shape = (16, 5, 5)
-        self.conv3 = Conv2DLayer(16, 32, 3)     # shape = (32, 3, 3)
+        self.conv1 = Conv2DLayer(8, 16, 5)       # shape = (16, 9, 9)
+        self.conv2 = Conv2DLayer(16, 32, 3)      # shape = (32, 7, 7)
+        self.conv3 = Conv2DLayer(32, 64, 3)      # shape = (64, 5, 5)
+        self.conv4 = Conv2DLayer(64, 128, 3)      # shape = (128, 3, 3)
+        self.conv5 = Conv2DLayer(128, 32, 1)      # shape = (32, 3, 3)
         self.flatten = nn.Flatten()
         w1, w2 = input_size[-1], input_size[-2]
-        n_feat = (w1 - 6) * (w2 - 6) * 32
+        n_feat = (w1 - 10) * (w2 - 10) * 32
         self.fc1 = LinearLayer(n_feat, 512, activation_type="PReLU")
         self.fc2 = LinearLayer(512, 128, activation_type="PReLU")
         self.fc3 = LinearLayer(128, output_size, activation_type="none", norm_type="none")
@@ -37,6 +39,8 @@ class Estimator(nn.Module):
         x = self.conv1(x)
         x = self.conv2(x)
         x = self.conv3(x)
+        x = self.conv4(x)
+        x = self.conv5(x)
         x = self.flatten(x)
         x = self.fc1(x)
         x = self.fc2(x)
@@ -52,12 +56,12 @@ class DQN:
         self.model_pred.eval()
         return self.model_pred(x)
 
-    def __init__(self, input_size=[None, 4, 9, 9], output_size=4, lr=5e-4, update_rate=5, gamma=0.8, batch_size=256) -> None:
+    def __init__(self, input_size=[None, 8, 13, 13], output_size=4, lr=5e-4, update_rate=5, gamma=0.8, batch_size=256) -> None:
         super().__init__()
         self.model_train = Estimator(input_size, output_size)
         self.model_pred = Estimator(input_size, output_size)
         self.loss = nn.SmoothL1Loss()
-        self.optimizer = optim.SGD(self.model_train.parameters(), lr=lr)
+        self.optimizer = optim.SGD(self.model_train.parameters(), lr=lr, momentum=0.2)
         self.n_train = 0
         self.update_rate = update_rate
         self.gamma = 0.8

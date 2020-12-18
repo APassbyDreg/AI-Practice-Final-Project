@@ -116,11 +116,11 @@ mission_change_rate = 25
 
 
 ######################################## training
-num_epoch = 1000
+num_epoch = 2000
 start_eps = 0.9
 end_eps = 0.15
-start_decay_epoch = 100
-end_decay_epoch = 500
+start_decay_epoch = 200
+end_decay_epoch = 1000
 n_batch = 32
 done = False
 losses = []
@@ -133,11 +133,11 @@ while i < num_epoch:
         mission_xml_path = get_random_mission_xml_path(agent_host)
     world_state = reset_world(agent_host, mission_xml_path, my_clients, agentID, expID, logger)
     curr_state = get_curr_state(world_state)
-    curr_pos = (None, None, None)
     done = False
     curr_eps = get_epsilon(i, end_decay_epoch, start_decay_epoch, start_eps=start_eps, end_eps=end_eps)
     curr_reward = 0
     step_cnt = 0
+    visited = set([])
     while not done:
         # step
         step_cnt += 1
@@ -145,17 +145,17 @@ while i < num_epoch:
         done, reward, world_state, pos = step(agent_host, action_list[act])
         next_state = get_next_state(world_state, curr_state)
         # if stay in same place and not ended, set reward to -10
-        if not done and curr_pos[0] == pos[0] and curr_pos[2] == pos[2]:
+        if not done and pos2id(pos) in visited:
             reward = -10.0
+        visited.add(pos2id(pos))
         if len(memory) >= mem_size:
             memory.pop(0)
         memory.append(Transition(curr_state, act, reward, next_state, done))
         curr_state = next_state
-        curr_pos = pos
         curr_reward += reward
         logger.info(f"- step {step_cnt} of epoch {i+1}: action=\"{action_list[act]}\", reward={reward}, pos={pos}")
     logger.info(f"total reward @ epoch{i+1} is {curr_reward}")
-    # train
+    # train or save to memory
     if len(memory) >= bs:
         i += 1
         loss = 0

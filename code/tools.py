@@ -134,3 +134,9 @@ def step(agent_host, cmd):
     observations = json.loads(msg)
     pos = (observations['XPos'], observations['YPos'], observations['ZPos'])
     return done, reward, world_state, pos
+
+
+def pos2id(pos):
+    x = pos[0]
+    z = pos[2]
+    return int(x*10) * 2333 + int(z*10)

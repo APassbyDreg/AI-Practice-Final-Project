@@ -15,7 +15,7 @@ class Maze:
     def init_str(self):
         init_xml_1 = '<DrawCuboid x1="{0}" y1="226" z1="{2}" x2="{1}" y2="246" z2="{3}" type="glass"/>\n'.format(0, self.w+1, 0, self.h+1)
         init_xml_2 = '<DrawCuboid x1="{0}" y1="227" z1="{2}" x2="{1}" y2="246" z2="{3}" type="air"/>\n'.format(1, self.w, 1, self.h)
-        init_xml_3 = '<DrawCuboid x1="{0}" y1="227" z1="{2}" x2="{1}" y2="227" z2="{3}" type="sea_lantern"/>\n'.format(1, self.w, 1, self.h)
+        init_xml_3 = '<DrawCuboid x1="{0}" y1="227" z1="{2}" x2="{1}" y2="228" z2="{3}" type="sea_lantern"/>\n'.format(1, self.w, 1, self.h)
         return init_xml_1 + init_xml_2 + init_xml_3
 
     def get_grid(self):
@@ -108,7 +108,7 @@ class Maze:
         exit3 = (exit3, self.w-1)
 
         self.key_grid = [exit0, exit1, exit2, exit3]
-        self.grid = grid;
+        self.grid = grid
 
 
     def generate_xml(self):
@@ -119,14 +119,15 @@ class Maze:
         for i in range(self.h):
             for j in range(self.w):
                 if grid[i][j] == 1:
-                    carpet_str = '<DrawCuboid x1="{0}" y1="227" z1="{2}" x2="{1}" y2="227" z2="{3}" type="carpet"/>\n'.format(j+1, j+1, i+1, i+1)
+                    carpet_str = '<DrawCuboid x1="{0}" y1="227" z1="{2}" x2="{1}" y2="227" z2="{3}" type="wooden_slab"/>\n'.format(j+1, j+1, i+1, i+1)
                     #there are 50% chance that blocks under carpet become netherrack
 #                    temp = random.randint(0, 1)
 #                    if temp == 0:
+                    air_str = '<DrawCuboid x1="{0}" y1="228" z1="{2}" x2="{1}" y2="228" z2="{3}" type="air"/>\n'.format(j+1, j+1, i+1, i+1)
                     nether_str = '<DrawCuboid x1="{0}" y1="226" z1="{2}" x2="{1}" y2="226" z2="{3}" type="netherrack"/>\n'.format(
                             j + 1, j + 1, i + 1, i + 1)
 
-                    str_xml = str_xml + carpet_str + nether_str
+                    str_xml = str_xml + carpet_str + nether_str + air_str
 
         for k in range(0, len(key_cells)-1):
             i = key_cells[k][0]
@@ -150,14 +151,17 @@ class Maze:
         for i in range(self.h):
             for j in range(self.w):
                 if grid[i][j] == 1:
-                    carpet_str = '<DrawCuboid x1="{0}" y1="227" z1="{2}" x2="{1}" y2="227" z2="{3}" type="carpet"/>\n'.format(j+1, j+1, i+1, i+1)
+                    carpet_str = '<DrawCuboid x1="{0}" y1="227" z1="{2}" x2="{1}" y2="227" z2="{3}" type="wooden_slab"/>\n'.format(j+1, j+1, i+1, i+1)
                     #there are 50% chance that blocks under carpet become netherrack
                     #                    temp = random.randint(0, 1)
                     #                    if temp == 0:
+                    air_str = '<DrawCuboid x1="{0}" y1="228" z1="{2}" x2="{1}" y2="230" z2="{3}" type="air"/>\n'.format(
+                                                                                                                                  j + 1, j + 1, i + 1, i + 1)
+                                                                                                                                  
                     nether_str = '<DrawCuboid x1="{0}" y1="226" z1="{2}" x2="{1}" y2="226" z2="{3}" type="netherrack"/>\n'.format(
                                                                                                                                   j + 1, j + 1, i + 1, i + 1)
                                                                                                                                   
-                    str_xml = str_xml + carpet_str + nether_str
+                    str_xml = str_xml + carpet_str + nether_str + air_str
     
         key_grid_str = ""
         while (len(key_cells) != 0):

@@ -78,50 +78,50 @@ ckpt_save_rate = 50
 if os.path.exists(ckpt_dir):
     shutil.rmtree(ckpt_dir)
 os.makedirs(ckpt_dir)
-dqn = DQN()
+bs = 256
+dqn = DQN(batch_size=bs, lr=2e-4)
 memory = []
-mem_size = 1024
+mem_size = 2048
 expID = 0
-start_eps = 0.9
-end_eps = 0.1
-mission_change_rate = 20
+mission_change_rate = 25
 #################################################
 
 
-################################## filling memory
-mission_xml_path = os.path.join(agent_host.getStringArgument('mission_file'), "Maze0.xml")
-world_state = reset_world(agent_host, mission_xml_path, my_clients, agentID, expID)
-curr_state = get_curr_state(world_state)
-done = False
-curr_pos = (None, None, None)
-while len(memory) < mem_size:
-    # change mission xml per 20 times
-    if len(memory) % mission_change_rate == 0:
-        mission_xml_path = get_random_mission_xml_path(agent_host)
-    if done:
-        logger.info("curr records in memory %d" % (len(memory)))
-        world_state = reset_world(agent_host, mission_xml_path, my_clients, agentID, expID)
-        curr_state = get_curr_state(world_state)
-    act = epsilon_greedy(dqn, curr_state, eps=1)
-    done, reward, world_state, pos = step(agent_host, action_list[act])
-    # if stay in same place and not ended, set reward to -10
-    if not done and curr_pos[0] == pos[0] and curr_pos[2] == pos[2]:
-        reward = -10.0
-    logger.info("- action=\"{}\", reward={}, pos={}".format(action_list[act], reward, pos))
-    next_state = get_next_state(world_state, curr_state)
-    memory.append(Transition(curr_state, act, reward, next_state, done))
-    curr_state = next_state
-    curr_pos = pos
-logger.info("Finished populating memory")
-#################################################
+# ################################## filling memory
+# mission_xml_path = os.path.join(agent_host.getStringArgument('mission_file'), "Maze0.xml")
+# world_state = reset_world(agent_host, mission_xml_path, my_clients, agentID, expID)
+# curr_state = get_curr_state(world_state)
+# done = False
+# curr_pos = (None, None, None)
+# while len(memory) < mem_size:
+#     # change mission xml per 20 times
+#     if len(memory) % mission_change_rate == 0:
+#         mission_xml_path = get_random_mission_xml_path(agent_host)
+#     if done:
+#         logger.info("curr records in memory %d" % (len(memory)))
+#         world_state = reset_world(agent_host, mission_xml_path, my_clients, agentID, expID)
+#         curr_state = get_curr_state(world_state)
+#     act = epsilon_greedy(dqn, curr_state, eps=1)
+#     done, reward, world_state, pos = step(agent_host, action_list[act])
+#     # if stay in same place and not ended, set reward to -10
+#     if not done and curr_pos[0] == pos[0] and curr_pos[2] == pos[2]:
+#         reward = -10.0
+#     logger.info("- action=\"{}\", reward={}, pos={}".format(action_list[act], reward, pos))
+#     next_state = get_next_state(world_state, curr_state)
+#     memory.append(Transition(curr_state, act, reward, next_state, done))
+#     curr_state = next_state
+#     curr_pos = pos
+# logger.info("Finished populating memory")
+# #################################################
 
 
 ######################################## training
 epochs = 4000
-end_decay_epoch = 400
-n_batch = 16
-mission_xml_path = os.path.join(agent_host.getStringArgument('mission_file'), "Maze0.xml")
-world_state = reset_world(agent_host, mission_xml_path, my_clients, agentID, expID)
+start_eps = 0.9
+end_eps = 0.15
+start_decay_epoch = 200
+end_decay_epoch = 1000
+n_batch = 32
 done = False
 losses = []
 for i in range(epochs):
@@ -130,13 +130,14 @@ for i in range(epochs):
     logger.info("%d-th episode"%(i))
     if i % mission_change_rate == 0:
         mission_xml_path = get_random_mission_xml_path(agent_host)
-    world_state = reset_world(agent_host, mission_xml_path, my_clients, agentID, expID)
+    world_state = reset_world(agent_host, mission_xml_path, my_clients, agentID, expID, logger)
     curr_state = get_curr_state(world_state)
     curr_pos = (None, None, None)
     done = False
     curr_eps = get_epsilon(i, epochs)
     curr_reward = 0
     step_cnt = 0
+    visited = set([])
     while not done:
         # step
         step_cnt += 1
@@ -146,7 +147,9 @@ for i in range(epochs):
         # if stay in same place and not ended, set reward to -10
         if not done and curr_pos[0] == pos[0] and curr_pos[2] == pos[2]:
             reward = -10.0
-        memory.pop(0)
+        visited.add(pos2id(pos))
+        if len(memory) >= mem_size:
+            memory.pop(0)
         memory.append(Transition(curr_state, act, reward, next_state, done))
         curr_state = next_state
         curr_pos = pos
@@ -154,17 +157,21 @@ for i in range(epochs):
         logger.info("- step " + str(step_cnt) + " of epoch"+ str(i+1) +": action= "+action_list[act]+" , reward= "+str(reward))
     logger.info("total reward @ epoch %d is %d"%(i+1, curr_reward))
     # train
-    loss = 0
-    for _ in tqdm(range(n_batch)):
-        loss += dqn.train_once(memory)
-    logger.info("loss after epoch {} is {}".format(i+1, loss/n_batch))
-    losses.append(loss / n_batch)
+    if len(memory) >= bs:
+        i += 1
+        loss = 0
+        for _ in tqdm(range(n_batch)):
+            loss += dqn.train_once(memory)
+        logger.info("loss after epoch {} is {}".format(i + 1, loss / n_batch))
+        losses.append(loss / n_batch)
+    else:
+        logger.info("populating memory pool: {}/{}".format(len(memory), mem_size))
 #################################################
 
 
 save_ckpt(dqn.model_pred, "ckpt@finished", ckpt_dir)
-# plt.plot(losses)
-# plt.xlabel("epoch")
-# plt.ylabel("loss")
-# plt.savefig("./logs/loss-{}.png".format(timestamp))
-# plt.show()
+plt.plot(losses)
+plt.xlabel("epoch")
+plt.ylabel("loss")
+plt.savefig("./logs/loss-{}.png".format(timestamp))
+plt.show()

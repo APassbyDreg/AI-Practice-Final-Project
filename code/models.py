@@ -56,7 +56,7 @@ class DQN:
         super().__init__()
         self.model_train = Estimator(input_size, output_size)
         self.model_pred = Estimator(input_size, output_size)
-        self.loss = nn.MSELoss()
+        self.loss = nn.SmoothL1Loss()
         self.optimizer = optim.SGD(self.model_train.parameters(), lr=lr)
         self.n_train = 0
         self.update_rate = update_rate

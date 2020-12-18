@@ -78,7 +78,7 @@ for i in range(n):
                               <Block reward="100.0" type="emerald_block"/>
                               <Block reward="-50.0" type="fire"/>
                               <Block reward="-20.0" type="sea_lantern"/>
-                              <Block reward="-20.0" type="netherrack"/>
+                              <Block reward="0.0" type="netherrack"/>
                               <Block reward="5.0" type="carpet"/>
                           </RewardForTouchingBlockType>
                           <RewardForSendingCommand reward="-1"/>

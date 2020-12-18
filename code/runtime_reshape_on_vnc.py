@@ -22,25 +22,25 @@ except:
     from model_sl_tools import save_ckpt
     import malmoutils
 
-
 try:
     from malmo import MalmoPython
 except:
     import MalmoPython
 
 
-
 ##################################### set logger
-# timestamp = datetime.now().strftime("%Y-%m-%d@%H-%M-%S")
-# logger = logging.getLogger('')
-# logger.setLevel(logging.DEBUG)
-# fh = logging.FileHandler("./logs/{}.log".format(timestamp))
-# sh = logging.StreamHandler(sys.stdout)
-# formatter = logging.Formatter('[%(asctime)s] %(levelname)s [%(filename)s.%(funcName)s:%(lineno)d] %(message)s', datefmt='%a, %d %b %Y %H:%M:%S')
-# fh.setFormatter(formatter)
-# sh.setFormatter(formatter)
-# logger.addHandler(fh)
-# logger.addHandler(sh)
+if not os.path.exists("./logs"):
+    os.makedirs("./logs")
+timestamp = datetime.now().strftime("%Y-%m-%d@%H-%M-%S")
+logger = logging.getLogger('')
+logger.setLevel(logging.DEBUG)
+fh = logging.FileHandler("./logs/{}.log".format(timestamp))
+sh = logging.StreamHandler(sys.stdout)
+formatter = logging.Formatter('[%(asctime)s] %(levelname)s [%(filename)s.%(funcName)s:%(lineno)d] %(message)s', datefmt='%a, %d %b %Y %H:%M:%S')
+fh.setFormatter(formatter)
+sh.setFormatter(formatter)
+logger.addHandler(fh)
+logger.addHandler(sh)
 ################################################
 
 
@@ -51,11 +51,11 @@ mission_file = "./mazes"
 # try:
 #     schema_dir = "mazes"
 # except KeyError:
-#     print("MALMO_XSD_PATH not set? Check environment.")
+#     logger.info("MALMO_XSD_PATH not set? Check environment.")
 #     exit(1)
 # mission_file = os.path.abspath(schema_dir)
 # if not os.path.exists(mission_file):
-#     print("Could not find Maze.xml under MALMO_XSD_PATH")
+#     logger.info("Could not find Maze.xml under MALMO_XSD_PATH")
 #     exit(1)
 # add some args
 agent_host.addOptionalStringArgument('mission_file',
@@ -99,7 +99,7 @@ while len(memory) < mem_size:
     if len(memory) % mission_change_rate == 0:
         mission_xml_path = get_random_mission_xml_path(agent_host)
     if done:
-        print("curr records in memory %d" % (len(memory)))
+        logger.info("curr records in memory %d" % (len(memory)))
         world_state = reset_world(agent_host, mission_xml_path, my_clients, agentID, expID)
         curr_state = get_curr_state(world_state)
     act = epsilon_greedy(dqn, curr_state, eps=1)
@@ -107,12 +107,12 @@ while len(memory) < mem_size:
     # if stay in same place and not ended, set reward to -10
     if not done and curr_pos[0] == pos[0] and curr_pos[2] == pos[2]:
         reward = -10.0
-    print("- action=\"{}\", reward={}, pos={}".format(action_list[act], reward, pos))
+    logger.info("- action=\"{}\", reward={}, pos={}".format(action_list[act], reward, pos))
     next_state = get_next_state(world_state, curr_state)
     memory.append(Transition(curr_state, act, reward, next_state, done))
     curr_state = next_state
     curr_pos = pos
-print("Finished populating memory")
+logger.info("Finished populating memory")
 #################################################
 
 
@@ -127,7 +127,7 @@ losses = []
 for i in range(epochs):
     if i % ckpt_save_rate == 0:
         save_ckpt(dqn.model_pred, "ckpt@epoch%d"%(i), ckpt_dir)
-    print("%d-th episode"%(i))
+    logger.info("%d-th episode"%(i))
     if i % mission_change_rate == 0:
         mission_xml_path = get_random_mission_xml_path(agent_host)
     world_state = reset_world(agent_host, mission_xml_path, my_clients, agentID, expID)
@@ -151,13 +151,13 @@ for i in range(epochs):
         curr_state = next_state
         curr_pos = pos
         curr_reward += reward
-        print("- step " + str(step_cnt) + " of epoch"+ str(i+1) +": action= "+action_list[act]+" , reward= "+str(reward))
-    print("total reward @ epoch %d is %d"%(i+1, curr_reward))
+        logger.info("- step " + str(step_cnt) + " of epoch"+ str(i+1) +": action= "+action_list[act]+" , reward= "+str(reward))
+    logger.info("total reward @ epoch %d is %d"%(i+1, curr_reward))
     # train
     loss = 0
     for _ in tqdm(range(n_batch)):
         loss += dqn.train_once(memory)
-    print("loss after epoch {} is {}".format(i+1, loss/n_batch))
+    logger.info("loss after epoch {} is {}".format(i+1, loss/n_batch))
     losses.append(loss / n_batch)
 #################################################
 

@@ -817,13 +817,13 @@ with tf.Session() as sess:
                                     target_estimator=target_estimator,
                                     state_processor=state_processor,
                                     experiment_dir=experiment_dir,
-                                    num_episodes=1000,
-                                    replay_memory_size=500000,
-                                    replay_memory_init_size=500,
-                                    update_target_estimator_every=1000,
+                                    num_episodes=3000,
+                                    replay_memory_size=50000,
+                                    replay_memory_init_size=2000,
+                                    update_target_estimator_every=2000,
                                     epsilon_start=1.0,
                                     epsilon_end=0.1,
-                                    epsilon_decay_steps=50000,
+                                    epsilon_decay_steps=2000,
                                     discount_factor=0.99,
                                     batch_size=32):
         print("\nEpisode Reward: {}".format(stats.episode_rewards[-1]))

@@ -74,7 +74,7 @@ class StateProcessor():
     def __init__(self):
         # Build the Tensorflow graph
         with tf.variable_scope("state_processor"):
-            self.input_state = tf.placeholder(shape=[9, 9, 1], dtype=tf.uint8)
+            self.input_state = tf.placeholder(shape=[13, 13, 1], dtype=tf.uint8)
             # self.output = tf.image.rgb_to_grayscale(self.input_state)
             self.output = self.input_state
             # self.output = tf.image.crop_to_bounding_box(self.output, 0, 0, 10, 10)
@@ -102,7 +102,7 @@ def gridProcess(state):
     Xpos = observations.get(u'XPos', 0)
     Zpos = observations.get(u'ZPos', 0)
     obs = np.array(grid)
-    obs = np.reshape(obs, [9, 9, 1])
+    obs = np.reshape(obs, [13, 13, 1])
     # obs[(int)(5+ Zpos)][ (int)(5+ Xpos)] = "human"
 
     # for i in range(obs.shape[0]):
@@ -149,7 +149,7 @@ class Estimator():
 
         # Placeholders for our input
         # Our input are 1 RGB frames of shape 10, 10 each
-        self.X_pl = tf.placeholder(shape=[None, 9, 9, 4], dtype=tf.uint8, name="X")
+        self.X_pl = tf.placeholder(shape=[None, 13, 13, 4], dtype=tf.uint8, name="X")
         # The TD target value
         self.y_pl = tf.placeholder(shape=[None], dtype=tf.float32, name="y")
         # Integer id of which action was selected

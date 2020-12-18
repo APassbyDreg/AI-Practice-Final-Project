@@ -78,10 +78,11 @@ ckpt_save_rate = 50
 if os.path.exists(ckpt_dir):
     shutil.rmtree(ckpt_dir)
 os.makedirs(ckpt_dir)
-bs = 256
-dqn = DQN(batch_size=bs, lr=2e-4)
+bs = 2000
+update_rate=10
+dqn = DQN(batch_size=bs, update_rate=update_rate, lr=2e-4)
 memory = []
-mem_size = 2048
+mem_size = 50000
 expID = 0
 mission_change_rate = 25
 #################################################
@@ -120,7 +121,7 @@ epochs = 4000
 start_eps = 0.9
 end_eps = 0.15
 start_decay_epoch = 200
-end_decay_epoch = 1000
+end_decay_epoch = 2000
 n_batch = 32
 done = False
 losses = []

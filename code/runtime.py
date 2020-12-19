@@ -46,7 +46,7 @@ logger.addHandler(sh)
 
 ################################## prepare malmo
 agent_host = MalmoPython.AgentHost()
-mission_file = "/home/apd/MalmoPlatform/Schemas"
+mission_file_path = "/home/apd/MalmoPlatform/Schemas"
 # schema_dir = None
 # try:
 #     schema_dir = "mazes"
@@ -59,7 +59,7 @@ mission_file = "/home/apd/MalmoPlatform/Schemas"
 #     exit(1)
 # add some args
 agent_host.addOptionalStringArgument('mission_file',
-                                     'Path/to/file from which to load the mission.', mission_file)
+                                     'Path/to/file from which to load the mission.', mission_file_path)
 agent_host.addOptionalFlag('load_model', 'Load initial model from model_file.')
 agent_host.addOptionalStringArgument('model_file', 'Path to the initial model file', '')
 agent_host.addOptionalFlag('debug', 'Turn on debugging.')
@@ -89,14 +89,14 @@ mission_change_rate = 1
 num_epoch = 2000
 start_eps = 1
 end_eps = 0.4
-start_decay_epoch = 200
-end_decay_epoch = 1000
+start_decay_epoch = 0
+end_decay_epoch = 1500
 n_batch = 32
 done = False
 losses = []
 i = 0
 success = []
-dqn = DQN(batch_size=bs, lr=1e-4)
+dqn = DQN(batch_size=bs, lr=2e-4)
 while i < num_epoch:
     if i % ckpt_save_rate == 0:
         save_ckpt(dqn.model_pred, "ckpt@epoch{:04d}".format(i), ckpt_dir)
@@ -117,7 +117,7 @@ while i < num_epoch:
         next_state = get_next_state(world_state, curr_state)
         # if stay in same place and not ended, set reward to -10
         if not done and pos2id(pos) in visited:
-            reward = -10.0
+            reward = -4.0
         visited.add(pos2id(pos))
         if len(memory) >= mem_size:
             memory.pop(0)
@@ -137,14 +137,39 @@ while i < num_epoch:
         losses.append(loss/n_batch)
     else:
         logger.info(f"populating memory pool: {len(memory)}/{mem_size}")
-#################################################
-
-
+# save final ckpt
 save_ckpt(dqn.model_pred, "ckpt@finished", ckpt_dir)
 success_rate = [0]
 for s in success:
     success_rate.append(s * 0.02 + success_rate[-1] * 0.98)
+#################################################
 
+
+######################################### testing
+test_result = []
+test_repeat = 25
+for mazeNum in range(4):
+    test_result.append([])
+    mission_file_path = agent_host.getStringArgument('mission_file')
+    mission_xml_path = os.path.join(mission_file_path,"Maze%s.xml" % mazeNum)
+    for repeat in range(test_repeat):
+        world_state = reset_world(agent_host, mission_xml_path, my_clients, agentID, 0, logger)
+        curr_state = get_curr_state(world_state)
+        done = False
+        step_cnt = 0
+        while not done:
+            # step
+            step_cnt += 1
+            act = epsilon_greedy(dqn, curr_state, eps=0, logger=None)
+            done, reward, world_state, pos = step(agent_host, action_list[act])
+            next_state = get_next_state(world_state, curr_state)
+            curr_state = next_state
+            logger.info(f"- step {step_cnt} of epoch {i+1}: action=\"{action_list[act]}\", reward={reward}, pos={pos}")
+        test_result[-1].append(0 if reward <= 0 else 1)
+        logger.info(f"test {repeat} on maze{mazeNum}: {test_result[-1][-1] == 1}")
+    logger.info(f"success rate on maze{mazeNum} is {sum(test_result[-1]) / test_repeat}")
+json.dump(test_result, open(f"./logs/test-result-{timestamp}.json", "w"))
+#################################################
 
 
 plt.plot(losses)

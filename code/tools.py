@@ -59,9 +59,9 @@ def epsilon_greedy(estimator, obs, eps, num_actions=4, logger=None):
     return action
 
 
-def get_random_mission_xml_path(agent_host):
+def get_random_mission_xml_path(agent_host, n_maze=10):
     mission_file = agent_host.getStringArgument('mission_file')
-    mazeNum = np.random.randint(0, 4)
+    mazeNum = np.random.randint(0, n_maze)
     mission_file = os.path.join(mission_file,"Maze%s.xml"%mazeNum)
     return mission_file
 

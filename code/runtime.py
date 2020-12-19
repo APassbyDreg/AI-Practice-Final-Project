@@ -86,6 +86,7 @@ bs = 256
 memory = []
 mem_size = 2048
 mission_change_rate = 1
+n_maze = 10
 num_epoch = 2000
 start_eps = 1
 end_eps = 0.4
@@ -96,12 +97,12 @@ done = False
 losses = []
 i = 0
 success = []
-dqn = DQN(batch_size=bs, lr=2e-4)
+dqn = DQN(batch_size=bs, lr=1e-4)
 while i < num_epoch:
     if i % ckpt_save_rate == 0:
         save_ckpt(dqn.model_pred, "ckpt@epoch{:04d}".format(i), ckpt_dir)
     if i % mission_change_rate == 0:
-        mission_xml_path = get_random_mission_xml_path(agent_host)
+        mission_xml_path = get_random_mission_xml_path(agent_host, n_maze)
     world_state = reset_world(agent_host, mission_xml_path, my_clients, agentID, 0, logger)
     curr_state = get_curr_state(world_state)
     done = False
@@ -148,7 +149,7 @@ for s in success:
 ######################################### testing
 test_result = []
 test_repeat = 25
-for mazeNum in range(4):
+for mazeNum in range(n_maze):
     test_result.append([])
     mission_file_path = agent_host.getStringArgument('mission_file')
     mission_xml_path = os.path.join(mission_file_path,"Maze%s.xml" % mazeNum)
@@ -180,6 +181,6 @@ plt.savefig(f"./logs/loss-{timestamp}.png")
 plt.clf()
 plt.plot(success_rate[1:])
 plt.xlabel("epoch")
-plt.ylabel("success_rate over ~ 20 epoches")
+plt.ylabel("success_rate over ~ 50 epoches")
 plt.savefig(f"./logs/success-rate-{timestamp}.png")
 plt.show()

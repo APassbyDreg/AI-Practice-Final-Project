@@ -17,6 +17,7 @@ except:
 Transition = namedtuple("Transition", ["state", "action", "reward", "next_state", "done"])
 MAX_RETRIES = 100
 BLOCK_2_ID = {"carpet": 0,
+              "wooden_slab": 0,
               "sea_lantern": 1,
               "fire": 2,
               "emerald_block": 3,

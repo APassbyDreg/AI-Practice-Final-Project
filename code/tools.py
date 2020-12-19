@@ -17,6 +17,7 @@ except:
 Transition = namedtuple("Transition", ["state", "action", "reward", "next_state", "done"])
 MAX_RETRIES = 100
 BLOCK_2_ID = {"carpet": 0,
+              "wooden_slab": 0,
               "sea_lantern": 1,
               "fire": 2,
               "emerald_block": 3,
@@ -37,7 +38,7 @@ def grid_process(world_state):
         else:
             grid[i] = BLOCK_2_ID["__else"]
     full_grid = np.reshape(np.array(grid), [13, 13])
-    return full_grid[2:-2, 2:-2]
+    return full_grid
 
 
 def get_epsilon(curr_step, decay_end_step, decay_start_step=0, start_eps=1, end_eps=0.1):
@@ -107,7 +108,7 @@ def reset_world(agent_host,
 
 def get_curr_state(world_state):
     state = grid_process(world_state)
-    state = np.stack([state] * 4, axis=0)
+    state = np.stack([state] * 8, axis=0)
     return state
 
 

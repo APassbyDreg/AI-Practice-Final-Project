@@ -80,6 +80,7 @@ for i in range(n):
                               <Block reward="-20.0" type="sea_lantern"/>
                               <Block reward="0.0" type="netherrack"/>
                               <Block reward="5.0" type="carpet"/>
+                              <Block reward="5.0" type="wooden_slab"/>
                           </RewardForTouchingBlockType>
                           <RewardForSendingCommand reward="-1"/>
                           <RewardForMissionEnd rewardForDeath="-40.0">

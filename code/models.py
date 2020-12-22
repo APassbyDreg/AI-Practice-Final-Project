@@ -66,6 +66,7 @@ class DQN:
         self.update_rate = update_rate
         self.gamma = 0.8
         self.batch_size = batch_size
+        self.lr_shed = optim.lr_scheduler.StepLR(self.optimizer, 50, 0.8)
 
     def train_once(self, memory):
         self.model_train.train(True)

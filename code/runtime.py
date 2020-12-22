@@ -120,9 +120,11 @@ while i < num_epoch:
         pos_id = pos2id(pos)
         visited[pos_id] = visited.get(pos_id, -1) + 1
         if not done:
-            reward -= visited[pos_id] * 2.0
+            reward -= visited[pos_id] * 1.0
         if len(memory) >= mem_size:
             memory.pop(0)
+        reward = max(-50, reward)
+        reward = min(100, reward)
         memory.append(Transition(curr_state, act, reward, next_state, done))
         curr_state = next_state
         logger.info(f"- step {step_cnt} of epoch {i+1}: action=\"{action_list[act]}\", reward={reward}, pos={pos}")
@@ -144,13 +146,21 @@ save_ckpt(dqn.model_pred, "ckpt@finished", ckpt_dir)
 success_rate = [0]
 for s in success:
     success_rate.append(s * 0.02 + success_rate[-1] * 0.98)
+######################################### testing
+
+
+##################################### saving figs
+plt.plot(losses)
+plt.xlabel("epoch")
+plt.ylabel("loss")
+plt.savefig(f"./logs/loss-{timestamp}.png")
+
+plt.clf()
+plt.plot(success_rate[1:])
+plt.xlabel("epoch")
+plt.ylabel("success_rate over ~ 50 epoches")
+plt.savefig(f"./logs/success-rate-{timestamp}.png")
 #################################################
-
-
-
-
-
-
 
 
 ######################################### testing
@@ -180,14 +190,4 @@ json.dump(test_result, open(f"./logs/test-result-{timestamp}.json", "w"))
 #################################################
 
 
-plt.plot(losses)
-plt.xlabel("epoch")
-plt.ylabel("loss")
-plt.savefig(f"./logs/loss-{timestamp}.png")
-
-plt.clf()
-plt.plot(success_rate[1:])
-plt.xlabel("epoch")
-plt.ylabel("success_rate over ~ 50 epoches")
-plt.savefig(f"./logs/success-rate-{timestamp}.png")
 plt.show()

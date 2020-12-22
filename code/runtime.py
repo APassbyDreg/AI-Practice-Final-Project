@@ -89,9 +89,9 @@ mission_change_rate = 1
 n_maze = 8
 num_epoch = 2000
 start_eps = 1
-end_eps = 0.4
+end_eps = 0.2
 start_decay_epoch = 0
-end_decay_epoch = 1500
+end_decay_epoch = 1600
 n_batch = 32
 done = False
 losses = []
@@ -108,7 +108,7 @@ while i < num_epoch:
     done = False
     curr_eps = get_epsilon(i, end_decay_epoch, start_decay_epoch, start_eps=start_eps, end_eps=end_eps)
     step_cnt = 0
-    visited = set([])
+    visited = {}
     logger.info(f"{i}-th episode, eps={curr_eps}")
     while not done:
         # step
@@ -117,9 +117,10 @@ while i < num_epoch:
         done, reward, world_state, pos = step(agent_host, action_list[act])
         next_state = get_next_state(world_state, curr_state)
         # if stay in same place and not ended, set reward to -10
-        if not done and pos2id(pos) in visited:
-            reward = -4.0
-        visited.add(pos2id(pos))
+        pos_id = pos2id(pos)
+        visited[pos_id] = visited.get(pos_id, -1) + 1
+        if not done:
+            reward -= visited[pos_id] * 2.0
         if len(memory) >= mem_size:
             memory.pop(0)
         memory.append(Transition(curr_state, act, reward, next_state, done))
@@ -144,6 +145,12 @@ success_rate = [0]
 for s in success:
     success_rate.append(s * 0.02 + success_rate[-1] * 0.98)
 #################################################
+
+
+
+
+
+
 
 
 ######################################### testing

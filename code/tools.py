@@ -37,7 +37,7 @@ def grid_process(world_state):
             grid[i] = BLOCK_2_ID[block]
         else:
             grid[i] = BLOCK_2_ID["__else"]
-    full_grid = np.reshape(np.array(grid), [13, 13])
+    full_grid = np.reshape(np.array(grid), [1, 13, 13])
     return full_grid
 
 
@@ -108,13 +108,13 @@ def reset_world(agent_host,
 
 def get_curr_state(world_state):
     state = grid_process(world_state)
-    state = np.stack([state] * 8, axis=0)
+    # state = np.stack([state] * 8, axis=0)
     return state
 
 
 def get_next_state(world_state, curr_state):
     next_state = grid_process(world_state)
-    next_state = np.append(curr_state[1:, :, :], np.expand_dims(next_state, 0), axis=0)
+    # next_state = np.append(curr_state[1:, :, :], np.expand_dims(next_state, 0), axis=0)
     return next_state
 
 

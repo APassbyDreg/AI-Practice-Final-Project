@@ -75,23 +75,23 @@ agentID = 0
 action_list = ["movenorth 1", "movesouth 1", "movewest 1", "moveeast 1"]
 ckpt_dir = os.path.abspath("./checkpoints")
 ckpt_save_rate = 50
-if os.path.exists(ckpt_dir):
-    shutil.rmtree(ckpt_dir)
-os.makedirs(ckpt_dir)
 #################################################
 
 
 ######################################## training
+if os.path.exists(ckpt_dir):
+    shutil.rmtree(ckpt_dir)
+os.makedirs(ckpt_dir)
 bs = 256
 memory = []
-mem_size = 2048
+mem_size = 4096
 mission_change_rate = 1
 n_maze = 8
-num_epoch = 2000
-start_eps = 1
-end_eps = 0.2
+num_epoch = 1600
+start_eps = 0.9
+end_eps = 0.15
 start_decay_epoch = 0
-end_decay_epoch = 1600
+end_decay_epoch = 1500
 n_batch = 32
 done = False
 losses = []
@@ -109,6 +109,7 @@ while i < num_epoch:
     curr_eps = get_epsilon(i, end_decay_epoch, start_decay_epoch, start_eps=start_eps, end_eps=end_eps)
     step_cnt = 0
     visited = {}
+    last_posid = None
     logger.info(f"{i}-th episode, eps={curr_eps}")
     while not done:
         # step
@@ -119,12 +120,17 @@ while i < num_epoch:
         # if stay in same place and not ended, set reward to -10
         pos_id = pos2id(pos)
         visited[pos_id] = visited.get(pos_id, -1) + 1
-        if not done:
-            reward -= visited[pos_id] * 1.0
+        # if not done:
+        #     if pos_id == last_posid:
+        #         reward -= 20
+        #     reward -= visited[pos_id] * 1.0
+        # reward += 5
+        last_posid = pos_id
         if len(memory) >= mem_size:
             memory.pop(0)
         reward = max(-50, reward)
         reward = min(100, reward)
+        reward /= 10
         memory.append(Transition(curr_state, act, reward, next_state, done))
         curr_state = next_state
         logger.info(f"- step {step_cnt} of epoch {i+1}: action=\"{action_list[act]}\", reward={reward}, pos={pos}")
@@ -163,6 +169,13 @@ plt.savefig(f"./logs/success-rate-{timestamp}.png")
 #################################################
 
 
+
+####################################### load ckpt
+dqn = DQN()
+dqn.load_checkpoint("./checkpoints/ckpt@finished.ckpt")
+#################################################
+
+
 ######################################### testing
 test_result = []
 test_repeat = 25
@@ -171,7 +184,7 @@ for mazeNum in range(n_maze):
     mission_file_path = agent_host.getStringArgument('mission_file')
     mission_xml_path = os.path.join(mission_file_path,"Maze%s.xml" % mazeNum)
     for repeat in range(test_repeat):
-        world_state = reset_world(agent_host, mission_xml_path, my_clients, agentID, 0, logger)
+        world_state = reset_world(agent_host, mission_xml_path, my_clients, agentID, 0.1, logger)
         curr_state = get_curr_state(world_state)
         done = False
         step_cnt = 0

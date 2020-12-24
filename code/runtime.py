@@ -73,8 +73,10 @@ agentID = 0
 
 ############################### prepare training
 action_list = ["movenorth 1", "movesouth 1", "movewest 1", "moveeast 1"]
+act_display = ["↑", "↓", "←", "→"]
 ckpt_dir = os.path.abspath("./checkpoints")
 ckpt_save_rate = 50
+n_maze = 1
 #################################################
 
 
@@ -82,22 +84,21 @@ ckpt_save_rate = 50
 if os.path.exists(ckpt_dir):
     shutil.rmtree(ckpt_dir)
 os.makedirs(ckpt_dir)
-bs = 256
+bs = 128
+bn = 32
 memory = []
 mem_size = 4096
 mission_change_rate = 1
-n_maze = 8
-num_epoch = 1600
-start_eps = 0.9
-end_eps = 0.15
+num_epoch = 400
+start_eps = 1.0
+end_eps = 0.1
 start_decay_epoch = 0
-end_decay_epoch = 1500
-n_batch = 32
+end_decay_epoch = 360
 done = False
 losses = []
 i = 0
 success = []
-dqn = DQN(batch_size=bs, lr=1e-4)
+dqn = DQN(batch_size=bs, batch_num=bn, lr=1e-3)
 while i < num_epoch:
     if i % ckpt_save_rate == 0:
         save_ckpt(dqn.model_pred, "ckpt@epoch{:04d}".format(i), ckpt_dir)
@@ -112,17 +113,17 @@ while i < num_epoch:
     last_posid = None
     logger.info(f"{i}-th episode, eps={curr_eps}")
     while not done:
+        l = logger if step_cnt % 10 == 0 else None
         # step
         step_cnt += 1
-        act = epsilon_greedy(dqn, curr_state, curr_eps, logger=None)
+        act, pred_act = epsilon_greedy(dqn, curr_state, curr_eps, logger=l)
         done, reward, world_state, pos = step(agent_host, action_list[act])
         next_state = get_next_state(world_state, curr_state)
         # if stay in same place and not ended, set reward to -10
         pos_id = pos2id(pos)
         visited[pos_id] = visited.get(pos_id, -1) + 1
-        # if not done:
-        #     if pos_id == last_posid:
-        #         reward -= 20
+        if not done and pos_id == last_posid:
+                reward = -100
         #     reward -= visited[pos_id] * 1.0
         # reward += 5
         last_posid = pos_id
@@ -133,18 +134,16 @@ while i < num_epoch:
         reward /= 10
         memory.append(Transition(curr_state, act, reward, next_state, done))
         curr_state = next_state
-        logger.info(f"- step {step_cnt} of epoch {i+1}: action=\"{action_list[act]}\", reward={reward}, pos={pos}")
+        logger.info(f"- step {step_cnt} of epoch {i+1}: action=\"{act_display[act]}\", reward={reward}, pos={pos}, pred_act=\"{act_display[pred_act]}\"")
     success.append(0 if reward <= 0 else 1)
     if len(success) > 50:
         logger.info(f"success rate of last 50 epoches is {sum(success[-50:])/50}")
     # train or save to memory
-    if len(memory) >= bs:
+    if len(memory) >= bs * 2:
         i += 1
-        loss = 0
-        for _ in tqdm(range(n_batch)):
-            loss += dqn.train_once(memory)
-        logger.info(f"loss after epoch {i+1} is {loss/n_batch}")
-        losses.append(loss/n_batch)
+        loss = dqn.train_batch(memory)
+        logger.info(f"loss after epoch {i+1} is {loss}")
+        losses.append(loss)
     else:
         logger.info(f"populating memory pool: {len(memory)}/{mem_size}")
 # save final ckpt
@@ -152,7 +151,7 @@ save_ckpt(dqn.model_pred, "ckpt@finished", ckpt_dir)
 success_rate = [0]
 for s in success:
     success_rate.append(s * 0.02 + success_rate[-1] * 0.98)
-######################################### testing
+#################################################
 
 
 ##################################### saving figs
@@ -172,13 +171,14 @@ plt.savefig(f"./logs/success-rate-{timestamp}.png")
 
 ####################################### load ckpt
 dqn = DQN()
-dqn.load_checkpoint("./checkpoints/ckpt@finished.ckpt")
+dqn.load_checkpoint("./checkpoints/ckpt@finished")
 #################################################
 
 
 ######################################### testing
 test_result = []
-test_repeat = 25
+test_repeat = 5
+maxstep = 50
 for mazeNum in range(n_maze):
     test_result.append([])
     mission_file_path = agent_host.getStringArgument('mission_file')
@@ -188,15 +188,15 @@ for mazeNum in range(n_maze):
         curr_state = get_curr_state(world_state)
         done = False
         step_cnt = 0
-        while not done:
+        while not done and step_cnt < maxstep:
             # step
             step_cnt += 1
-            act = epsilon_greedy(dqn, curr_state, eps=0, logger=None)
+            act, _ = epsilon_greedy(dqn, curr_state, eps=0, logger=None)
             done, reward, world_state, pos = step(agent_host, action_list[act])
             next_state = get_next_state(world_state, curr_state)
             curr_state = next_state
-            logger.info(f"- step {step_cnt} of epoch {i+1}: action=\"{action_list[act]}\", reward={reward}, pos={pos}")
-        test_result[-1].append(0 if reward <= 0 else 1)
+            logger.info(f"- step {step_cnt} of maze-{mazeNum} repeat-{repeat}: action=\"{action_list[act]}\", reward={reward}, pos={pos}")
+        test_result[-1].append(0 if reward <= 0 and step_cnt < maxstep else 1)
         logger.info(f"test {repeat} on maze{mazeNum}: {test_result[-1][-1] == 1}")
     logger.info(f"success rate on maze{mazeNum} is {sum(test_result[-1]) / test_repeat}")
 json.dump(test_result, open(f"./logs/test-result-{timestamp}.json", "w"))

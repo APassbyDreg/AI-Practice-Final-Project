@@ -26,18 +26,24 @@ BLOCK_2_ID = {"carpet": 0,
               "glass": 6,
               "netherrack": 7,
               "__else": 8}
-
+WALL_BLOCKS = {"glass", "beacon", "sea_lantern"}
+ROAD_BLOCKS = {"netherrack", "wooden_slab", "carpet", "fire"}
+SAFE_BLOCKS = {"netherrack", "wooden_slab", "carpet"}
+EXIT_BLOCKS = {"emerald_block"}
+FIRE_BLOCKS = {"fire"}
+FLAMABLE_BLOCKS = {"wooden_slab", "carpet"}
+STATE_LAYERS = [WALL_BLOCKS, ROAD_BLOCKS, EXIT_BLOCKS, SAFE_BLOCKS, FIRE_BLOCKS, FLAMABLE_BLOCKS]
 
 def grid_process(world_state):
     msg = world_state.observations[-1].text
     observations = json.loads(msg)
     grid = observations.get(u'floor10x10', 0)
-    for i, block in enumerate(grid):
-        if block in BLOCK_2_ID.keys():
-            grid[i] = BLOCK_2_ID[block]
-        else:
-            grid[i] = BLOCK_2_ID["__else"]
-    full_grid = np.reshape(np.array(grid), [1, 13, 13])
+    layers = []
+    for l in STATE_LAYERS:
+        layer = [1 if b in l else 0 for b in grid]
+        layers.append(np.array(layer))
+    full_grid = np.stack(layers)
+    full_grid = full_grid.reshape([len(layers), 13, 13])
     return full_grid
 
 
@@ -56,7 +62,7 @@ def epsilon_greedy(estimator, obs, eps, num_actions=4, logger=None):
         logger.info(f"q_values: {q_values}")
     action_probs[best_action] += (1.0 - eps)
     action = np.random.choice(np.arange(num_actions), p=action_probs)
-    return action
+    return action, best_action
 
 
 def get_random_mission_xml_path(agent_host, n_maze=10):
@@ -123,7 +129,7 @@ def step(agent_host, cmd):
     world_state = agent_host.peekWorldState()
     num_frames_seen = world_state.number_of_video_frames_since_last_state
 
-    while world_state.is_mission_running and world_state.number_of_video_frames_since_last_state == num_frames_seen:
+    while world_state.is_mission_running and world_state.number_of_video_frames_since_last_state == num_frames_seen or len(world_state.observations) == 0:
         world_state = agent_host.peekWorldState()
     
     done = not world_state.is_mission_running

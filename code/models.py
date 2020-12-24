@@ -47,10 +47,10 @@ class Estimator(nn.Module):
         return x
 
 
-def init_model_xavier(net, gain=1):
+def init_model(net, mean=0, std=0.2):
     def func(m):
         try:
-            nn.init.xavier_normal_(m.weight.data, gain)
+            nn.init.normal_(m.weight.data, mean, std)
         except:
             pass
         try:
@@ -68,12 +68,12 @@ class DQN:
         self.model_pred.eval()
         return self.model_pred(x)
 
-    def __init__(self, input_size=[None, 6, 13, 13], output_size=4, lr=5e-4, update_rate=1, gamma=0.9, batch_size=256, batch_num=64, gamma_scale_step=100) -> None:
+    def __init__(self, input_size=[None, 6, 13, 13], output_size=4, lr=5e-4, update_rate=1, gamma=0.9, batch_size=256, batch_num=64) -> None:
         super().__init__()
         self.model_train = Estimator(input_size, output_size)
         self.model_pred = Estimator(input_size, output_size)
-        init_model_xavier(self.model_train)
-        init_model_xavier(self.model_pred)
+        init_model(self.model_train)
+        init_model(self.model_pred)
         self.loss = nn.SmoothL1Loss()
         self.optimizer = optim.SGD(self.model_train.parameters(), lr=lr, momentum=0.2)
         self.n_train = 0
@@ -82,7 +82,6 @@ class DQN:
         self.batch_size = batch_size
         self.batch_num = batch_num
         self.lr_shed = optim.lr_scheduler.StepLR(self.optimizer, 20, 0.8)
-        self.gamma_scale_step = gamma_scale_step
 
     def load_checkpoint(self, ckpt_path):
         load_ckpt(self.model_pred, ckpt_path)
@@ -108,7 +107,7 @@ class DQN:
         states_batch, action_batch, reward_batch, next_states_batch, _ = map(np.array, zip(*samples))
         # get target & pred
         q_values_next_target = self.model_pred(next_states_batch).detach().numpy()
-        targets_batch = reward_batch + self.gamma * q_values_next_target.max(axis=1) * min(1, self.n_train / self.gamma_scale_step)
+        targets_batch = reward_batch + self.gamma * q_values_next_target.max(axis=1)
         targets_batch = torch.FloatTensor(targets_batch.reshape(-1, 1))
         q_values_next_pred = self.model_train(states_batch)
         action_batch = torch.tensor(action_batch.reshape(-1, 1), dtype=torch.int64)
@@ -121,10 +120,10 @@ class DQN:
 
 
 if __name__ == "__main__":
-    est = Estimator(input_size=[None, 6, 13, 13])
-    print(est)
-    x = torch.rand(2, 6, 13, 13)
-    print(est(x))
+    # est = Estimator(input_size=[None, 6, 13, 13])
+    # print(est)
+    x = torch.rand(10, 6, 13, 13)
+    # print(est(x))
 
     dqn = DQN()
     print(dqn(x))

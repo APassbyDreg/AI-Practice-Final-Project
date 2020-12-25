@@ -81,7 +81,7 @@ class DQN:
         self.gamma = 0.8
         self.batch_size = batch_size
         self.batch_num = batch_num
-        self.lr_shed = optim.lr_scheduler.StepLR(self.optimizer, 20, 0.8)
+        self.lr_shed = optim.lr_scheduler.StepLR(self.optimizer, 40, 0.8)
 
     def load_checkpoint(self, ckpt_path):
         load_ckpt(self.model_pred, ckpt_path)
@@ -108,6 +108,7 @@ class DQN:
         # get target & pred
         q_values_next_target = self.model_pred(next_states_batch).detach().numpy()
         targets_batch = reward_batch + self.gamma * q_values_next_target.max(axis=1)
+        targets_batch = np.maximum(-5, targets_batch)
         targets_batch = torch.FloatTensor(targets_batch.reshape(-1, 1))
         q_values_next_pred = self.model_train(states_batch)
         action_batch = torch.tensor(action_batch.reshape(-1, 1), dtype=torch.int64)

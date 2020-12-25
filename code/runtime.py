@@ -73,10 +73,10 @@ agentID = 0
 
 ############################### prepare training
 action_list = ["movenorth 1", "movesouth 1", "movewest 1", "moveeast 1"]
-act_display = ["↑", "↓", "←", "→"]
+act_display = ["↑", "↓", "←", "→", "x"]
 ckpt_dir = os.path.abspath("./checkpoints")
 ckpt_save_rate = 50
-n_maze = 1
+n_maze = 8
 #################################################
 
 
@@ -85,20 +85,20 @@ if os.path.exists(ckpt_dir):
     shutil.rmtree(ckpt_dir)
 os.makedirs(ckpt_dir)
 bs = 128
-bn = 32
+bn = 64
 memory = []
 mem_size = 4096
 mission_change_rate = 1
-num_epoch = 400
+num_epoch = 2000
 start_eps = 1.0
 end_eps = 0.1
 start_decay_epoch = 0
-end_decay_epoch = 360
+end_decay_epoch = 1800
 done = False
 losses = []
 i = 0
 success = []
-dqn = DQN(batch_size=bs, batch_num=bn, lr=1e-3)
+dqn = DQN(batch_size=bs, batch_num=bn, lr=5e-3)
 while i < num_epoch:
     if i % ckpt_save_rate == 0:
         save_ckpt(dqn.model_pred, "ckpt@epoch{:04d}".format(i), ckpt_dir)
@@ -126,15 +126,16 @@ while i < num_epoch:
                 reward = -100
         #     reward -= visited[pos_id] * 1.0
         # reward += 5
-        last_posid = pos_id
         if len(memory) >= mem_size:
             memory.pop(0)
         reward = max(-50, reward)
         reward = min(100, reward)
         reward /= 10
+        logger.info(f"- step {step_cnt} of epoch {i+1}: action=\"{act_display[act]}\", reward={reward}, pos={pos}, pred_act=\"{act_display[pred_act]}\"")
         memory.append(Transition(curr_state, act, reward, next_state, done))
         curr_state = next_state
-        logger.info(f"- step {step_cnt} of epoch {i+1}: action=\"{act_display[act]}\", reward={reward}, pos={pos}, pred_act=\"{act_display[pred_act]}\"")
+        last_posid = pos_id
+        # logger.info(f"- step {step_cnt} of epoch {i+1}: action=\"{act_display[act]}\", reward={reward}, pos={pos}, pred_act=\"{act_display[pred_act]}\"")
     success.append(0 if reward <= 0 else 1)
     if len(success) > 50:
         logger.info(f"success rate of last 50 epoches is {sum(success[-50:])/50}")

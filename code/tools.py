@@ -26,7 +26,7 @@ BLOCK_2_ID = {"carpet": 0,
               "glass": 6,
               "netherrack": 7,
               "__else": 8}
-WALL_BLOCKS = {"glass", "beacon", "sea_lantern"}
+WALL_BLOCKS = {"glass", "beacon", "sea_lantern", "fire"}
 ROAD_BLOCKS = {"netherrack", "wooden_slab", "carpet", "fire"}
 SAFE_BLOCKS = {"netherrack", "wooden_slab", "carpet"}
 EXIT_BLOCKS = {"emerald_block"}
@@ -126,10 +126,12 @@ def get_next_state(world_state, curr_state):
 
 def step(agent_host, cmd):
     agent_host.sendCommand(cmd)
+    time.sleep(0.1)
     world_state = agent_host.peekWorldState()
     num_frames_seen = world_state.number_of_video_frames_since_last_state
 
     while world_state.is_mission_running and world_state.number_of_video_frames_since_last_state == num_frames_seen or len(world_state.observations) == 0:
+        time.sleep(0.1)
         world_state = agent_host.peekWorldState()
     
     done = not world_state.is_mission_running
